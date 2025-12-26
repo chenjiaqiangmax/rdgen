@@ -664,8 +664,16 @@ jobs:
         if: ${{ fromJson(inputs.extras).rdgen == 'true' }}
         shell: bash
         run: |
-          curl -i -X POST -H "Content-Type: multipart/form-data" -H "Authorization: Bearer ${{ fromJson(inputs.extras).token }}" -F "file=@./SignOutput/${{ inputs.filename }}.exe" -F "uuid=${{ inputs.uuid }}" ${{ secrets.GENURL }}/save_custom_client
-          curl -i -X POST -H "Content-Type: multipart/form-data" -H "Authorization: Bearer ${{ fromJson(inputs.extras).token }}" -F "file=@./SignOutput/${{ inputs.filename }}.msi" -F "uuid=${{ inputs.uuid }}" ${{ secrets.GENURL }}/save_custom_client || true
+          cd SignOutput
+          # Zip exe to speed up upload
+          7z a ${{ inputs.filename }}.exe.zip ${{ inputs.filename }}.exe
+          curl -i -X POST -H "Content-Type: multipart/form-data" -H "Authorization: Bearer ${{ fromJson(inputs.extras).token }}" -F "file=@${{ inputs.filename }}.exe.zip" -F "uuid=${{ inputs.uuid }}" ${{ secrets.GENURL }}/save_custom_client
+          
+          # Zip msi if exists
+          if [ -f "${{ inputs.filename }}.msi" ]; then
+             7z a ${{ inputs.filename }}.msi.zip ${{ inputs.filename }}.msi
+             curl -i -X POST -H "Content-Type: multipart/form-data" -H "Authorization: Bearer ${{ fromJson(inputs.extras).token }}" -F "file=@${{ inputs.filename }}.msi.zip" -F "uuid=${{ inputs.uuid }}" ${{ secrets.GENURL }}/save_custom_client || true
+          fi
 
       - name: send file to api server
         if: ${{ fromJson(inputs.extras).rdgen == 'false' }}
